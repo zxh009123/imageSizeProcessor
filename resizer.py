@@ -1,12 +1,19 @@
 from PIL import Image
 import argparse
 
+RATIO_WIDTH = 16
+RATIO_HEIGHT = 9
+WIDTH = 1920
+HEIGHT = 1080
+K_WIDTH = 3200
+K_HEIGHT = 1800
+
 class Resizer():
     def __init__(self, filename, logger=False):
         self.filename = filename
         #top, right, bottom, left
-        self.edges = [-1, -1, -1, -1]
-        self.modify = [0, 0, 0, 0]
+        self.edges = [-1] * 4
+        self.modify = [0] * 4
         self.expand_flag = False
         self.edge_color = None
         self.logger = logger
@@ -29,22 +36,22 @@ class Resizer():
         width, height = self.img.size
         if self.expand_flag is False:
             if width / height < 1.77:
-                while int(width / 16 * 9) != height:
+                while int(width / RATIO_WIDTH * RATIO_HEIGHT) != height:
                     height -= 1
             else:
-                while int(height / 9 * 16) != width:
+                while int(height / RATIO_HEIGHT * RATIO_WIDTH) != width:
                     width -= 1
         else:
-            if height <= 1080 and width <= 1920:
-                return 1920, 1080
+            if height <= HEIGHT and width <= WIDTH:
+                return WIDTH, HEIGHT
             if width / height > 1.77:
-                while int(width / 16 * 9) != width / 16 * 9:
+                while int(width / RATIO_WIDTH * RATIO_HEIGHT) != width / RATIO_WIDTH * RATIO_HEIGHT:
                     width += 1
-                height = width / 16 * 9
+                height = width / RATIO_WIDTH * RATIO_HEIGHT
             else:
-                while int(height / 9 * 16) != height / 9 * 16:
+                while int(height / RATIO_HEIGHT * RATIO_WIDTH) != height / RATIO_HEIGHT * RATIO_WIDTH:
                     height += 1
-                width = height / 9 * 16
+                width = height / RATIO_HEIGHT * RATIO_WIDTH
         return int(width), int(height)
 
     def resize_img_keep_ratio(self):
@@ -54,14 +61,14 @@ class Resizer():
         width <= 3200 and height <= 1800
         '''
         width, height = self.img.size
-        if width < 3200 and height < 1800:
+        if width < K_WIDTH and height < K_HEIGHT:
             return self.img
-        if width > 3200:
-            ratio = 3200/width
-            return self.img.resize((3200, int(height*ratio)), resample=Image.LANCZOS)
-        if height > 1800:
-            ratio = 1800/height
-            return self.img.resize((int(width*ratio), 1800), resample=Image.LANCZOS)
+        if width > K_WIDTH:
+            ratio = K_WIDTH/width
+            return self.img.resize((K_WIDTH, int(height*ratio)), resample=Image.LANCZOS)
+        if height > K_HEIGHT:
+            ratio = K_HEIGHT/height
+            return self.img.resize((int(width*ratio), K_HEIGHT), resample=Image.LANCZOS)
 
     def get_modify_edges(self):
         '''
@@ -70,7 +77,7 @@ class Resizer():
         '''
         width, height = self.img.size
 
-        modify = [0, 0, 0, 0]
+        modify = [0] * 4
         if self.expand_flag is True:
             if self.edges[0] != -1 or self.edges[2] != -1:
                 if self.edges[0] != -1 and self.edges[2] != -1:

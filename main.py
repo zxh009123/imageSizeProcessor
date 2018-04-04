@@ -4,8 +4,16 @@ import glob
 from PIL import Image, ImageTk
 import shutil
 import os
+from os import listdir
 from pathlib import Path
 import resizer
+
+#constants
+FILE_EXTENSIONS = ['.jpg', '.jpeg', '.png']
+EXPAND_WIDTH = 1440
+EXPAND_HEIGHT = 810
+CANVAS_WIDTH = 378
+CANVAS_HEIGHT = 265
 
 class PicAnalysis(object):
     def __init__(self, master):
@@ -82,7 +90,7 @@ class PicAnalysis(object):
         self.img = None
         self.resizer = None
         self.canvas.delete("all")
-        self.canvas.configure(width=378, height=265)
+        self.canvas.configure(width=CANVAS_WIDTH, height=CANVAS_HEIGHT)
         self.enable_widget(self.text_msgbox)
         self.text_msgbox.delete('1.0', END)
         self.disable_widget(self.text_msgbox)
@@ -115,23 +123,23 @@ class PicAnalysis(object):
         self.resizer = resizer.Resizer(self.img_list[0], logger=True)
 
         if self.resizer.expand_flag:
-            self.canvas.configure(width=1440, height=810)
+            self.canvas.configure(width=EXPAND_WIDTH, height=EXPAND_HEIGHT)
             self.img = self.resizer.expand_or_crop_image()
-            img_thumbnail = self.img.resize((1440, 810))
+            img_thumbnail = self.img.resize((EXPAND_WIDTH, EXPAND_HEIGHT))
         else:
             ratio = self.resizer.old_width/self.resizer.old_height
-            self.canvas.configure(width=1440,
-                                height=int(1440/ratio))
+            self.canvas.configure(width=EXPAND_WIDTH,
+                                height=int(EXPAND_WIDTH/ratio))
             self.img = Image.open(self.img_list[0])
             img_thumbnail = self.img.resize(
-            (1440, int(1440/ratio)))
+            (EXPAND_WIDTH, int(EXPAND_WIDTH/ratio)))
 
         self.thumbnail = ImageTk.PhotoImage(img_thumbnail)
         self.canvas.create_image(0,0, image=self.thumbnail, anchor='nw', tags='img')
 
         if self.resizer.expand_flag is False:
             rect = [0, int(self.resizer.modify[0]/ratio),
-            1440, int(1440/ratio-self.resizer.modify[2]/ratio)]
+            EXPAND_WIDTH, int(EXPAND_WIDTH/ratio-self.resizer.modify[2]/ratio)]
             self.canvas.create_rectangle(
             rect[0], rect[1], rect[2], rect[3], tags='rect')
         #img = imgResizer.expand_or_crop_image()
@@ -170,12 +178,7 @@ class PicAnalysis(object):
     def import_file(self):
         self.img_list = []
         path = filedialog.askdirectory()
-        files = glob.glob(path + "\\*")
-        for file in files:
-            if os.path.isfile(file):  # avoid dealing with subdirectories
-                if os.path.splitext(file)[1][1:] == 'jpg' or\
-                os.path.splitext(file)[1][1:] == 'png':
-                    self.img_list.append(file)
+        self.img_list = [os.path.join(path,f) for f in listdir(path) if (os.path.isfile(os.path.join(path,f))) and (os.path.splitext(f)[1].lower() in FILE_EXTENSIONS)]
         out_str = str(len(self.img_list)) + " Images found in " + path + "\n"
         self.cwd = path
         self.print_to_box(out_str)
@@ -199,12 +202,12 @@ class PicAnalysis(object):
                 self.move_list.append(file)
         out_str = str(count) + " images have 16/9 ratio.\n"
         self.print_to_box(out_str)
-        self.enable_widget(self.move)
+        self.enable_widget(self.btn_move)
 
     def move_pic(self):
-        new_dir = str(Path(self.cwd)) + "\\" + self.new_dir_name
+        new_dir = str(Path(self.cwd)) + "/" + self.new_dir_name
         if len(self.move_list) != 0:
-            os.makedirs(new_dir, exist_ok=True)
+            os.makedirs(new_dir, 0o777)
             count = 0
             for file in self.move_list:
                 shutil.move(file, new_dir)
